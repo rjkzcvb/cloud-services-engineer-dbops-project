@@ -1,4 +1,4 @@
-- V002: Нормализация схемы базы данных
+-- V002: Нормализация схемы базы данных
 
 -- 1. Добавляем колонку price в таблицу product
 ALTER TABLE product ADD COLUMN price double precision;
