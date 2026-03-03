@@ -6,11 +6,51 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: store_default
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    #### Добавьте шаг с Flyway-миграциями
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h postgres -p 5432 -U user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Set up JDK
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Install Flyway
+      run: |
+        curl -L -o flyway-commandline.tar.gz "https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.1.0/flyway-commandline-11.1.0-linux-x64.tar.gz"
+        tar -xzf flyway-commandline.tar.gz
+        sudo ln -s `pwd`/flyway-11.1.0/flyway /usr/local/bin/flyway
+
+    - name: Run Flyway migrations
+      env:
+        FLYWAY_URL: "jdbc:postgresql://postgres:5432/store_default"
+        FLYWAY_USER: user
+        FLYWAY_PASSWORD: password
+      run: flyway migrate -locations=filesystem:migrations
 
     ### Этот шаг оставьте без изменений
     - name: Download and setup autotests binaries
@@ -24,8 +64,8 @@ jobs:
       run: |
         dbopstest \
           -test.v \
-          -host=${{ secrets.DB_HOST }} \
-          -port=${{ secrets.DB_PORT }} \
-          -user=${{ secrets.DB_USER }} \
-          -password=${{ secrets.DB_PASSWORD }} \
-          -db=${{ secrets.DB_NAME }}
+          -host=postgres \
+          -port=5432 \
+          -user=user \
+          -password=password \
+          -db=store_default
