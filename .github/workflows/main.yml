@@ -1,12 +1,5 @@
-name: Main workflow
-on:
-  push:
-    branches:
-      - main
-jobs:
-  migrate:
+migrate:
     runs-on: ubuntu-latest
-    
     services:
       postgres:
         image: postgres:13
@@ -69,3 +62,6 @@ jobs:
           -user=user \
           -password=password \
           -db=store_default
+
+
+
